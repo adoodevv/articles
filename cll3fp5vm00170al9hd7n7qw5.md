@@ -1,5 +1,5 @@
 ---
-title: "Ui/ux 101"
+title: "ui/ux 101"
 datePublished: Wed Aug 09 2023 07:54:01 GMT+0000 (Coordinated Universal Time)
 cuid: cll3fp5vm00170al9hd7n7qw5
 slug: uiux-101
