@@ -45,7 +45,7 @@ Rebuild your workspace, close any running instances, and launch this file. Your 
 
 To refine our simulation, we can embed `<gazebo>` tags directly in the URDF. For example, to reduce friction on a caster wheel so it can spin freely:
 
-```bash
+```xml
 <gazebo reference="castor_wheel">
     <mu1>0.000001</mu1>
     <mu2>0.000001</mu2>
