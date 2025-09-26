@@ -10,7 +10,7 @@ tags: robotics, ros, gazebo, ros2
 
 # Introduction
 
-In this post, we’ll explore the design of a differential-drive robot and create its URDF model. This robot will serve as the foundation for the rest of this series. Much of what I’ve learned here comes from Josh Newans’ excellent [YouTube](https://www.youtube.com/playlist?list=PLunhqkrRNRhYAffV8JDiFOatQXuU-NnxT) tutorials on ROS 2 and Gazebo Classic. Let’s dive in!
+In this post, we’ll explore the design of a differential-drive robot and create its URDF model. This robot will serve as the foundation for the rest of this series. Much of what I’ve learnt here comes from Josh Newans’ excellent [YouTube](https://www.youtube.com/playlist?list=PLunhqkrRNRhYAffV8JDiFOatQXuU-NnxT) tutorials on ROS2 and Gazebo Classic. Let’s dive in!
 
 ## What is a Differential-Drive Robot?
 
@@ -31,7 +31,7 @@ The Unified Robot Description Format (URDF) uses XML to define a robot’s physi
 
 ### Streamlining with Xacro
 
-Instead of creating large URDF files manually, we use xacro (XML Macros) to make descriptions modular and reusable. Xacro files simplify changes, as components like sensors and wheels can be managed in separate files and included in a main file.
+Instead of creating large URDF files manually, we use xacro (XML Macros) to make descriptions modular and reusable. Xacro files simplify changes, as components like sensors or inertia values can be managed in separate files and included in a main file.
 
 Once processed, the xacro file becomes a complete URDF, which is passed to the `robot_state_publisher`. This node:
 
@@ -50,21 +50,25 @@ Before starting, ensure you’ve installed the required tools:
 sudo apt install ros-jazzy-xacro ros-jazzy-joint-state-publisher-gui
 ```
 
-We will organize our files in the `urdf/` directory within our package. Keeping the xacro files modular by separating components like sensors into individual files.
+We will organize our files in the `urdf/` directory within our package.
 
 ## Creating the URDF
 
-By the way, I found a URDF creator from [RoboEverything](https://www.roboeverything.com/) in a Reddit discussion which could be of use if you want to try it.
-
 #### Step 1: Starting with the Template
 
-To begin with, open up `robot.urdf.xacro` from the template and delete the `base_link` that is currently there. Replace it with the line `<xacro:include filename="robot_core.xacro" />`, so that your file looks like this:
+To begin with, open up `robot.urdf` from the [template](https://github.com/adoodevv/diffbot) and delete the `base_link` that is currently there. Replace it with the line
+
+```xml
+<xacro:include filename="$(find diffbot_tut)/urdf/robot.gazebo" />
+```
+
+so that your file looks like this:
 
 ```xml
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="diffbot_tut">
 
-    <xacro:include filename="robot_core.xacro" />
+    <xacro:include filename="$(find diffbot_tut)/urdf/robot.gazebo" />
 
 </robot>
 ```
@@ -73,20 +77,20 @@ The included file doesn’t exist yet, so any attempt to launch this will fail.
 
 #### Step 2: Defining the Base Link
 
-In the `urdf/` directory, create a new file called `robot_core.xacro`. Copy the following XML declaration and the `robot` tags (these are the same as in the previous file but without the `name` parameter). All of our links and joints will be going inside the robot tag.
+In the `urdf/` directory, create a new file called `robot.gazebo`. Copy the following XML declaration and the `robot` tags (these are the same as in the previous file but without the `name` parameter). All of our links and joints will be going inside the robot tag.
 
 ```xml
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-
-    ... all our links and joints will go in here ...
-
+<robot>
+   ... all our plugins will go here ...
 </robot>
 ```
 
-It is standard in ROS for the main "origin" link in a mobile robot to be called `base_link`. So we start with an empty link called `base_link` under the opening `robot` tag.
+It is standard in ROS for the main "origin" link in a mobile robot to be called `base_link`. So we start with an empty link called `base_link` under the opening `robot` tag in `robot.urdf`.
 
 ```xml
+<!-- Base link -->
+
 <link name="base_link" />
 ```
 
@@ -96,28 +100,35 @@ Define the chassis as a simple box. Let's make it a box that is *300 × 300 × 1
 
 ```xml
 <!-- Chassis -->
+
 <joint name="chassis_joint" type="fixed">
-  <origin xyz="0 0 0" rpy="0 0 0"/>
-  <parent link="base_link"/>
-  <child link="chassis_link"/>
+    <parent link="base_link"/>
+    <child link="chassis_link"/>
+    <origin xyz="-0.1 0 0"/>
 </joint>
 
 <link name="chassis_link">
-   <visual>
-      <origin xyz="0 0 0.075"/>
-      <geometry>
-         <box size="0.3 0.3 0.15"/>
-      </geometry>
-      <material name="chassis_material">
-         <color rgba="0.82 0.77 0.91 1.0"/>
-      </material>
-   </visual>
+    <visual>
+        <origin xyz="0.15 0 0.075"/>
+        <geometry>
+            <box size="0.3 0.3 0.15"/>
+        </geometry>
+        <material name="chassis_material">
+            <color rgba="0.82 0.77 0.91 1.0"/>
+        </material>
+    </visual>
+    <collision>
+        <origin xyz="0.15 0 0.075"/>
+        <geometry>
+            <box size="0.3 0.3 0.15"/>
+        </geometry>
+    </collision>
 </link>
 ```
 
 **Hold up, Let’s Launch and Visualize!**
 
-To launch what we have done so far, if you made a copy of the package from the GitHub template repository, you should already have a launch file (`launch/`[`rsp.launch.py`](http://rsp.launch.py)).
+To launch what we have done so far, if you made a copy of the package from the GitHub template repository, you should already have a launch file (`launch/`[`rsp.launch.py`](https://github.com/adoodevv/diffbot/blob/main/launch/rsp.launch.py)).
 
 To see the robot in RViz:
 
@@ -149,10 +160,10 @@ Now we want to add the drive wheels. The wheels can obviously move, so these wil
 ```xml
    <!-- Left wheel -->
    <joint name="left_wheel_joint" type="continuous">
-     <origin xyz="0.07 0.175 0" rpy="-${pi/2} 0 0"/>
-     <parent link="base_link"/>
-     <child link="left_wheel_link"/>
-     <axis xyz="0 0 1"/>
+       <origin xyz="0 0.175 0" rpy="-${pi/2} 0 0"/>
+       <child link="left_wheel_link"/>
+       <parent link="base_link"/>
+       <axis xyz="0 0 1"/>
    </joint>
 
    <link name="left_wheel_link">
@@ -168,11 +179,11 @@ Now we want to add the drive wheels. The wheels can obviously move, so these wil
 
    <!-- Right wheel -->
    <joint name="right_wheel_joint" type="continuous">
-     <origin xyz="0.07 -0.175 0" rpy="-${pi/2} 0 0"/>
-     <parent link="base_link"/>
-     <child link="right_wheel_link"/>
-     <axis xyz="0 0 1"/>
-   </joint>
+       <origin xyz="0 -0.175 0" rpy="${pi/2} 0 0"/>
+       <child link="right_wheel_link"/>
+       <parent link="base_link"/>
+       <axis xyz="0 0 -1"/>
+    </joint>
 
    <link name="right_wheel_link">
       <visual>
@@ -201,12 +212,12 @@ Add a simple frictionless sphere as the castor wheel:
 ```xml
    <!-- Castor wheel -->
    <joint name="castor_wheel_joint" type="fixed">
-      <parent link="base_link"/>
-      <child link="castor_wheel"/>
-      <origin xyz="0.09 0 0"/>
-   </joint>
+        <parent link="chassis"/>
+        <child link="castor_wheel_link"/>
+        <origin xyz="0.24 0 0"/>
+    </joint>
 
-   <link name="castor_wheel">
+   <link name="castor_wheel_link">
       <visual>
          <geometry>
             <sphere radius="0.05"/>
@@ -222,7 +233,7 @@ Add a simple frictionless sphere as the castor wheel:
 
 ### Adding Collision and Inertia
 
-To simulate realistic interactions, add collision geometry and inertial properties. For simplicity, copy the geometry from `<visual>` to `<collision>` tags. Use xacro macros for inertia calculations, such as `inertial_box` for the chassis or `inertial_cylinder` for the wheels. Calculating inertia values can sometimes be tricky, and it’s often easier to use macros. Download the `inertia_macros.xacro` file from here and place it in your `urdf/` directory. Then, near the top of your `robot_core.xacro` file (or `robot.urdf.xacro`) just under the opening `<robot>` tag, add the following line to include them.
+To simulate realistic interactions, add collision geometry and inertial properties. For simplicity, copy the geometry from `<visual>` to `<collision>` tags. Use xacro macros for inertia calculations, such as `inertial_box` for the chassis or `inertial_cylinder` for the wheels. Calculating inertia values can sometimes be tricky, and it’s often easier to use macros. Download the [`inertia_macros.xacro`](https://github.com/adoodevv/diffbot_tut/blob/main/urdf/inertial_macros.xacro) file from here and place it in your `urdf/` directory. Then, near the top of your `robot.urdf` just under the opening `<robot>` tag, add the following line to include them.
 
 ```xml
 <xacro:include filename="inertial_macros.xacro" />
@@ -233,7 +244,7 @@ Example:
 ```xml
 <link name="chassis_link">
     <visual>
-        <origin xyz="0 0 0.075"/>
+        <origin xyz="0.15 0 0.075"/>
         <geometry>
             <box size="0.3 0.3 0.15"/>
         </geometry>
@@ -242,7 +253,7 @@ Example:
         </material>
     </visual>
     <collision>
-        <origin xyz="0 0 0.075"/>
+        <origin xyz="0.15 0 0.075"/>
         <geometry>
             <box size="0.3 0.3 0.15"/>
         </geometry>
