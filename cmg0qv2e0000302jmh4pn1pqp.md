@@ -96,7 +96,7 @@ To drive the robot, create a new Xacro file named [`robot.gazebo`](https://githu
 </robot>
 ```
 
-So then inside those `<gazebo>` tags, we will create a `<plugin>` tag, using the `gz-sim-diff-drive-system` and the others. Find the full robot.gazebo file with all the needed plugins [here](https://github.com/adoodevv/diffbot_tut/blob/main/urdf/robot.gazebo).
+So then inside those `<gazebo>` tags, we will create a `<plugin>` tag, using the `gz-sim-diff-drive-system` and the others. Find the full `robot.gazebo` file with all the needed plugins [here](https://github.com/adoodevv/diffbot_tut/blob/main/urdf/robot.gazebo).
 
 ## Bridge ROS Topics
 
